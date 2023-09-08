@@ -35,6 +35,8 @@ match_dict = {'team': [], 'opponent': [], 'team_points':[], 'opponent_points': [
 rank ={'team':[], 'rank': [], 'week': [], 'season':[]}
 advanced_dict = {'team': [], 'season': [], 'off_total_ppa':[], 'off_success_rate': [], 
                 'def_total_ppa':[], 'def_success_rate': [], 'def_total_yards': []}
+opp_advanced_dict = {'opponent': [], 'season': [], 'opp_off_total_ppa':[], 'opp_off_success_rate': [], 
+                'opp_def_total_ppa':[], 'opp_def_success_rate': [], 'opp_def_total_yards': []}
 
 for year in years:
     print("Gathering " + str(year) + " Data")
@@ -49,13 +51,14 @@ for year in years:
         match_dict['week'].append(matchup.week)
         match_dict['season'].append(matchup.season)
 
+        '''
         match_dict['team'].append(matchup.away_team)
         match_dict['opponent'].append(matchup.home_team)
         match_dict['team_points'].append(matchup.away_points)
         match_dict['opponent_points'].append(matchup.home_points)
         match_dict['week'].append(matchup.week)
         match_dict['season'].append(matchup.season)
-
+        '''
     # Make Ranking DF
     rankings = rankings_api_instance.get_rankings(year=year)
 
@@ -87,13 +90,32 @@ for year in years:
             elif stat.defense.line_yards_total is None:
                 advanced_dict['def_total_yards'].append(stat.defense.open_field_yards_total)
 
+        
+        opp_advanced_dict['opponent'].append(stat.team)
+        opp_advanced_dict['season'].append(stat.season)
+
+        opp_advanced_dict['opp_off_total_ppa'].append(stat.offense.total_ppa)
+        opp_advanced_dict['opp_off_success_rate'].append(stat.offense.success_rate)
+
+        opp_advanced_dict['opp_def_total_ppa'].append(stat.defense.total_ppa)
+        opp_advanced_dict['opp_def_success_rate'].append(stat.defense.success_rate)
+
+        try:
+            opp_advanced_dict['opp_def_total_yards'].append(stat.defense.line_yards_total + stat.defense.open_field_yards_total)
+        except:
+            if stat.defense.open_field_yards_total is None:
+                opp_advanced_dict['opp_def_total_yards'].append(stat.defense.line_yards_total)
+            elif stat.defense.line_yards_total is None:
+                opp_advanced_dict['opp_def_total_yards'].append(stat.defense.open_field_yards_total)
     # Statistics DF
     stats = stats_api_instance.get_team_season_stats(year=year)
 
     stats_dict_temp = {'team': []}
+    opp_stats_dict_temp = {'opponent': []}
     for team in teams:
         if team.classification == 'fbs':
             stats_dict_temp['team'].append(team.school)
+            opp_stats_dict_temp['opponent'].append(team.school)
 
         stats_dict_temp['season'] = [None] * len(stats_dict_temp['team'])
         stats_dict_temp['games'] = [None] * len(stats_dict_temp['team'])
@@ -111,11 +133,34 @@ for year in years:
         stats_dict_temp['tacklesForLoss'] = [None] * len(stats_dict_temp['team'])
         stats_dict_temp['passesIntercepted'] = [None] * len(stats_dict_temp['team'])
 
+        opp_stats_dict_temp['season'] = [None] * len(opp_stats_dict_temp['opponent'])
+        opp_stats_dict_temp['games'] = [None] * len(opp_stats_dict_temp['opponent'])
+        opp_stats_dict_temp['totalYards'] = [None] * len(opp_stats_dict_temp['opponent'])
+        opp_stats_dict_temp['netPassingYards'] = [None] * len(opp_stats_dict_temp['opponent'])
+        opp_stats_dict_temp['rushingYards'] = [None] * len(opp_stats_dict_temp['opponent'])
+        opp_stats_dict_temp['passingTDs'] = [None] * len(opp_stats_dict_temp['opponent'])
+        opp_stats_dict_temp['rushingTDs'] = [None] * len(opp_stats_dict_temp['opponent'])
+        opp_stats_dict_temp['possessionTime'] = [None] * len(opp_stats_dict_temp['opponent'])
+        opp_stats_dict_temp['kickReturnTDs'] = [None] * len(opp_stats_dict_temp['opponent'])
+        opp_stats_dict_temp['puntReturnTDs'] = [None] * len(opp_stats_dict_temp['opponent'])
+        opp_stats_dict_temp['turnovers'] = [None] * len(opp_stats_dict_temp['opponent'])
+        opp_stats_dict_temp['penaltyYards'] = [None] * len(opp_stats_dict_temp['opponent'])
+        opp_stats_dict_temp['sacks'] = [None] * len(opp_stats_dict_temp['opponent'])
+        opp_stats_dict_temp['tacklesForLoss'] = [None] * len(opp_stats_dict_temp['opponent'])
+        opp_stats_dict_temp['passesIntercepted'] = [None] * len(opp_stats_dict_temp['opponent'])
+
     for num in stats:
         if list(stats_dict_temp.keys()).count(num.stat_name) == 1:
             try:
                 stats_dict_temp[num.stat_name][stats_dict_temp['team'].index(num.team)] = num.stat_value
                 stats_dict_temp['season'][stats_dict_temp['team'].index(num.team)] = num.season
+            except:
+                continue
+
+        if list(opp_stats_dict_temp.keys()).count(num.stat_name) == 1:
+            try:
+                opp_stats_dict_temp[num.stat_name][opp_stats_dict_temp['opponent'].index(num.team)] = num.stat_value
+                opp_stats_dict_temp['season'][opp_stats_dict_temp['opponent'].index(num.team)] = num.season
             except:
                 continue
     
@@ -126,11 +171,26 @@ for year in years:
     else:
         stats_dict = stats_dict_temp
 
+    if 'opp_stats_dict' in locals():
+        for key in opp_stats_dict_temp:
+            for item in opp_stats_dict_temp[key]:
+                opp_stats_dict[key].append(item)
+    else:
+        opp_stats_dict = opp_stats_dict_temp
+
 matchup_df = pd.DataFrame(data=match_dict)
 matchup_df['win'] = np.where(matchup_df['team_points'] > matchup_df['opponent_points'], 1, 0)
 ranking_df = pd.DataFrame(data=rank)
 advanced_df = pd.DataFrame(data=advanced_dict)
+opp_advanced_df = pd.DataFrame(data=opp_advanced_dict)
 stats_df = pd.DataFrame(data=stats_dict)
+opp_stats_df = pd.DataFrame(data=opp_stats_dict)
+
+# Rename Opponent Statistics
+opp_stats_df.rename(columns={'games': 'opp_games', 'totalYards': 'opp_totalYards', 'netPassingYards': 'opp_netPassingYards', 'rushingYards': 'opp_rushingYards', 
+                             'passingTDs': 'opp_passingTDs', 'rushingTDs': 'opp_rushingTDs', 'possessionTime': 'opp_possessionTime', 'kickReturnTDs': 'opp_kickReturnTDs',
+                             'puntReturnTDs': 'opp_puntReturnTDs', 'turnovers': 'opp_off_turnovers', 'penaltyYards': 'opp_penaltyYards', 'sacks': 'opp_sacks', 
+                             'tacklesForLoss': 'opp_tacklesForLoss','passesIntercepted': 'opp_passesIntercepted'}, inplace = True)
 
 # Combine DFs into One
 matchup_ranking_df = matchup_df.merge(ranking_df, how='left', on=['team','week','season'])
@@ -151,13 +211,14 @@ for i in range(len(matchup_ranking_df)):
         matchup_ranking_df['opponent_rank'][i] = opp_rank['rank'][0]
 
 mr_advstats_df = matchup_ranking_df.merge(advanced_df, how='left', on=['team','season'])
+mr_advstats_df = mr_advstats_df.merge(opp_advanced_df,how='left', on=['opponent','season'])
 mr_advstats_df.dropna(axis=0, inplace = True)
 mr_advstats_df = mr_advstats_df.reset_index(drop=True)
 
 full_df = mr_advstats_df.merge(stats_df, how = 'left', on=['team', 'season'])
+full_df = full_df.merge(opp_stats_df, how = 'left', on=['opponent', 'season'])
 full_df.rename(columns={'turnovers':'off_turnovers'}, inplace = True)
-
-#full_df.dropna(axis = 0, inplace = True)
+full_df.dropna(axis=0, inplace = True)
 full_df = full_df.reset_index(drop=True)
 
 # Define Per Game Metrics
@@ -175,14 +236,33 @@ full_df['sacks_per_game'] = full_df['sacks']/full_df['games']
 full_df['tackles_for_loss_per_game'] = full_df['tacklesForLoss']/full_df['games']
 full_df['def_interceptions_per_game'] = full_df['passesIntercepted']/full_df['games']
 
+full_df['opp_def_per_game_ppa'] = full_df['opp_def_total_ppa']/full_df['opp_games']
+full_df['opp_off_per_game_ppa'] = full_df['opp_off_total_ppa']/full_df['opp_games']
+full_df['opp_total_yards_per_game'] = full_df['opp_totalYards']/full_df['opp_games']
+full_df['opp_passing_yards_per_game'] = full_df['opp_netPassingYards']/full_df['opp_games']
+full_df['opp_rushing_yards_per_game'] = full_df['opp_rushingYards']/full_df['opp_games']
+full_df['opp_rushing_yards_per_game'] = full_df['rushingYards']/full_df['opp_games']
+full_df['opp_TDs_per_game'] = (full_df['opp_passingTDs']+full_df['opp_rushingTDs']+full_df['opp_kickReturnTDs']+full_df['opp_puntReturnTDs'])/full_df['opp_games']
+full_df['opp_time_of_possession_per_game'] = full_df['opp_possessionTime']/full_df['opp_games']
+full_df['opp_off_turnovers_per_game'] = full_df['opp_off_turnovers']/full_df['opp_games']
+full_df['opp_penalty_yards_per_game'] = full_df['opp_penaltyYards']/full_df['opp_games']
+full_df['opp_sacks_per_game'] = full_df['opp_sacks']/full_df['opp_games']
+full_df['opp_tackles_for_loss_per_game'] = full_df['opp_tacklesForLoss']/full_df['opp_games']
+full_df['opp_def_interceptions_per_game'] = full_df['opp_passesIntercepted']/full_df['opp_games']
+
 # Make Teams into Number Codes and Normalize Data
 norm_df = full_df[['team','opponent', 'team_points', 'opponent_points', 'season', 'week', 'rank', 'opponent_rank', 'win', 'off_success_rate','def_success_rate', 'def_per_game_ppa',
                    'off_per_game_ppa', 'total_yards_per_game', 'passing_yards_per_game', 'rushing_yards_per_game', 'TDs_per_game', 'time_of_possession_per_game',
-                   'off_turnovers_per_game', 'penalty_yards_per_game', 'sacks_per_game', 'tackles_for_loss_per_game', 'def_interceptions_per_game']]
+                   'off_turnovers_per_game', 'penalty_yards_per_game', 'sacks_per_game', 'tackles_for_loss_per_game', 'def_interceptions_per_game',
+                   'opp_off_success_rate','opp_def_success_rate', 'opp_def_per_game_ppa','opp_off_per_game_ppa', 'opp_total_yards_per_game', 'opp_passing_yards_per_game', 
+                   'opp_rushing_yards_per_game', 'opp_TDs_per_game', 'opp_time_of_possession_per_game','opp_off_turnovers_per_game', 
+                   'opp_penalty_yards_per_game', 'opp_sacks_per_game', 'opp_tackles_for_loss_per_game', 'opp_def_interceptions_per_game']]
 
 norm_df["team_code"] = norm_df["team"].astype("category").cat.codes
 norm_df["opp_code"] = norm_df["opponent"].astype("category").cat.codes
 
+norm_df['team_code'] = norm_df['team_code']/norm_df['team_code'].max()
+norm_df['opp_code'] = norm_df['opp_code']/norm_df['opp_code'].max()
 norm_df['rank'] = norm_df['rank']/ norm_df['rank'].max()
 norm_df['opponent_rank'] = norm_df['opponent_rank']/ norm_df['opponent_rank'].max()
 norm_df['def_per_game_ppa'] = norm_df['def_per_game_ppa']/ norm_df['def_per_game_ppa'].max()
@@ -197,6 +277,19 @@ norm_df['penalty_yards_per_game'] = norm_df['penalty_yards_per_game']/ norm_df['
 norm_df['sacks_per_game'] = norm_df['sacks_per_game']/ norm_df['sacks_per_game'].max()
 norm_df['tackles_for_loss_per_game'] = norm_df['tackles_for_loss_per_game']/ norm_df['tackles_for_loss_per_game'].max()
 norm_df['def_interceptions_per_game'] = norm_df['def_interceptions_per_game']/ norm_df['def_interceptions_per_game'].max()
+
+norm_df['opp_def_per_game_ppa'] = norm_df['opp_def_per_game_ppa']/ norm_df['opp_def_per_game_ppa'].max()
+norm_df['opp_off_per_game_ppa'] = norm_df['opp_off_per_game_ppa']/ norm_df['opp_off_per_game_ppa'].max()
+norm_df['opp_total_yards_per_game'] = norm_df['opp_total_yards_per_game']/ norm_df['opp_total_yards_per_game'].max()
+norm_df['opp_passing_yards_per_game'] = norm_df['opp_passing_yards_per_game']/ norm_df['opp_passing_yards_per_game'].max()
+norm_df['opp_rushing_yards_per_game'] = norm_df['opp_rushing_yards_per_game']/ norm_df['opp_rushing_yards_per_game'].max()
+norm_df['opp_TDs_per_game'] = norm_df['opp_TDs_per_game']/ norm_df['opp_TDs_per_game'].max()
+norm_df['opp_time_of_possession_per_game'] = norm_df['opp_time_of_possession_per_game']/ norm_df['opp_time_of_possession_per_game'].max()
+norm_df['opp_off_turnovers_per_game'] = norm_df['opp_off_turnovers_per_game']/ norm_df['opp_off_turnovers_per_game'].max()
+norm_df['opp_penalty_yards_per_game'] = norm_df['opp_penalty_yards_per_game']/ norm_df['opp_penalty_yards_per_game'].max()
+norm_df['opp_sacks_per_game'] = norm_df['opp_sacks_per_game']/ norm_df['opp_sacks_per_game'].max()
+norm_df['opp_tackles_for_loss_per_game'] = norm_df['opp_tackles_for_loss_per_game']/ norm_df['opp_tackles_for_loss_per_game'].max()
+norm_df['opp_def_interceptions_per_game'] = norm_df['opp_def_interceptions_per_game']/ norm_df['opp_def_interceptions_per_game'].max()
 
 # Save DFs to Excel
 full_df.to_excel(f"{full_path}/{full_file}")
