@@ -6,3 +6,31 @@ Project Description.docx
 scrape_data_dev.ipynb
 scrap.txt
 train_model_dev.ipynb
+build/NCAAFScorePredictor/Analysis-00.toc
+build/NCAAFScorePredictor/base_library.zip
+build/NCAAFScorePredictor/BUNDLE-00.toc
+build/NCAAFScorePredictor/EXE-00.toc
+build/NCAAFScorePredictor/localpycs/pyimod01_archive.pyc
+build/NCAAFScorePredictor/localpycs/pyimod02_importers.pyc
+build/NCAAFScorePredictor/localpycs/pyimod03_ctypes.pyc
+build/NCAAFScorePredictor/localpycs/struct.pyc
+build/NCAAFScorePredictor/NCAAFScorePredictor.pkg
+build/NCAAFScorePredictor/PKG-00.toc
+build/NCAAFScorePredictor/PYZ-00.pyz
+build/NCAAFScorePredictor/PYZ-00.toc
+build/NCAAFScorePredictor/Tree-00.toc
+build/NCAAFScorePredictor/Tree-01.toc
+build/NCAAFScorePredictor/Tree-02.toc
+build/NCAAFScorePredictor/warn-NCAAFScorePredictor.txt
+build/NCAAFScorePredictor/xref-NCAAFScorePredictor.html
+dist/NCAAFScorePredictor.app/Contents/_CodeSignature/CodeResources
+dist/NCAAFScorePredictor.app/Contents/Info.plist
+dist/NCAAFScorePredictor.app/Contents/MacOS/NCAAFScorePredictor
+dist/NCAAFScorePredictor.app/Contents/Resources/icon-windowed.icns
+NCAAF User Manual.docx
+NCAAFScorePredictor.spec
+predict_scores_dev.ipynb
+Season 2023 Week 2 NCAAF Score Predictions.xlsx
+Season 2023 Week 3 NCAAF Score Predictions.xlsx
+update_model_dev.ipynb
+~$Full Dataset.xlsx
