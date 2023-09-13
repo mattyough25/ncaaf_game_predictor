@@ -31,7 +31,7 @@ stats_api_instance = cfbd.StatsApi(cfbd.ApiClient(configuration))
 teams = teams_api_instance.get_teams()
 
 # Dictionary Definitions
-match_dict = {'team': [], 'opponent': [], 'team_points':[], 'opponent_points': [], 'week': [], 'season':[]}
+match_dict = {'team': [], 'opponent': [], 'team_points':[], 'opponent_points': [], 'away_post_win_prob': [], 'home_post_win_prob': [],'week': [], 'season':[]}
 rank ={'team':[], 'rank': [], 'week': [], 'season':[]}
 advanced_dict = {'team': [], 'season': [], 'off_total_ppa':[], 'off_success_rate': [], 
                 'def_total_ppa':[], 'def_success_rate': [], 'def_total_yards': []}
@@ -50,24 +50,21 @@ for year in years:
         match_dict['opponent_points'].append(matchup.away_points)
         match_dict['week'].append(matchup.week)
         match_dict['season'].append(matchup.season)
+        match_dict['home_post_win_prob'].append(matchup.home_post_win_prob)
+        match_dict['away_post_win_prob'].append(matchup.away_post_win_prob)
 
-        '''
-        match_dict['team'].append(matchup.away_team)
-        match_dict['opponent'].append(matchup.home_team)
-        match_dict['team_points'].append(matchup.away_points)
-        match_dict['opponent_points'].append(matchup.home_points)
-        match_dict['week'].append(matchup.week)
-        match_dict['season'].append(matchup.season)
-        '''
     # Make Ranking DF
     rankings = rankings_api_instance.get_rankings(year=year)
 
     for week in rankings:
-        for school in week.polls[0].ranks:
-            rank['team'].append(school.school)
-            rank['rank'].append(school.rank)
-            rank['week'].append(week.week)
-            rank['season'].append(week.season)
+        for i in range(len(week.polls)):
+            for school in week.polls[i].ranks:
+                if week.polls[i].poll == 'AP Top 25':
+                    rank['team'].append(school.school)
+                    rank['rank'].append(school.rank)
+                    rank['week'].append(week.week)
+                    rank['season'].append(week.season)
+        
 
     # Advanced Statistics DF
     advanced_stats = advanced_stats_api_instance.get_advanced_team_season_stats(year=year)
@@ -207,7 +204,7 @@ for i in range(len(matchup_ranking_df)):
     if len(ranking_df[(ranking_df['team'] == str(team)) & (ranking_df['week'] == week) & (ranking_df['season'] == season)]['rank']) == 0:
         matchup_ranking_df['opponent_rank'][i] = 26
     else:
-        opp_rank = ranking_df[(ranking_df['team'] == str(team)) & (ranking_df['week'] == week)]['rank'].reset_index()
+        opp_rank = ranking_df[(ranking_df['team'] == str(team)) & (ranking_df['week'] == week) & (ranking_df['season'] == season)]['rank'].reset_index()
         matchup_ranking_df['opponent_rank'][i] = opp_rank['rank'][0]
 
 mr_advstats_df = matchup_ranking_df.merge(advanced_df, how='left', on=['team','season'])
@@ -251,7 +248,7 @@ full_df['opp_tackles_for_loss_per_game'] = full_df['opp_tacklesForLoss']/full_df
 full_df['opp_def_interceptions_per_game'] = full_df['opp_passesIntercepted']/full_df['opp_games']
 
 # Make Teams into Number Codes and Normalize Data
-norm_df = full_df[['team','opponent', 'team_points', 'opponent_points', 'season', 'week', 'rank', 'opponent_rank', 'win', 'off_success_rate','def_success_rate', 'def_per_game_ppa',
+norm_df = full_df[['team','opponent', 'team_points', 'opponent_points', 'season', 'week', 'rank', 'opponent_rank', 'away_post_win_prob', 'home_post_win_prob', 'win', 'off_success_rate','def_success_rate', 'def_per_game_ppa',
                    'off_per_game_ppa', 'total_yards_per_game', 'passing_yards_per_game', 'rushing_yards_per_game', 'TDs_per_game', 'time_of_possession_per_game',
                    'off_turnovers_per_game', 'penalty_yards_per_game', 'sacks_per_game', 'tackles_for_loss_per_game', 'def_interceptions_per_game',
                    'opp_off_success_rate','opp_def_success_rate', 'opp_def_per_game_ppa','opp_off_per_game_ppa', 'opp_total_yards_per_game', 'opp_passing_yards_per_game', 

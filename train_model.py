@@ -26,7 +26,7 @@ X = X.reset_index(drop=True)
 
 # Split Data for Home and Away Models
 X_team = X[['rank', 'opponent_rank', 'off_success_rate', 'off_per_game_ppa', 'passing_yards_per_game', 'rushing_yards_per_game', 'TDs_per_game', 
-            'time_of_possession_per_game', 'off_turnovers_per_game', 'penalty_yards_per_game',  'team_code', 'opp_code',
+            'time_of_possession_per_game', 'off_turnovers_per_game', 'penalty_yards_per_game', 'team_code', 'opp_code',
             'opp_def_success_rate', 'opp_def_per_game_ppa', 'opp_time_of_possession_per_game','opp_penalty_yards_per_game', 
             'opp_sacks_per_game', 'opp_def_interceptions_per_game']]
 X_opp = X[['rank', 'opponent_rank', 'def_success_rate', 'def_per_game_ppa','time_of_possession_per_game','penalty_yards_per_game', 'sacks_per_game',
