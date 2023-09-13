@@ -371,7 +371,8 @@ class ScorePredictorNCAAF:
 ########################################################################################################################################
 
     ###### Predict Scores ######
-    def predict_scores(self, path, result_path, year, current_week):
+    def predict_scores(self, path, result_path, year, current_week, bPO):
+
         # File Names and Paths
         full_path = path
         norm_path = path
@@ -388,8 +389,15 @@ class ScorePredictorNCAAF:
         out_path = result_path
 
         # Year and Week to Scrape Data From
-        year = year
-        cur_week = current_week
+        # Determine if game is playoff of regular season
+        if bPO:
+            season_type = 'postseason'
+            year = year
+            cur_week = 1
+        else:
+            season_type = 'regular'
+            year = year
+            cur_week = current_week
 
         # Create API Connection
         configuration = cfbd.Configuration()
@@ -414,7 +422,7 @@ class ScorePredictorNCAAF:
         opp_advanced_dict = {'opponent': [], 'season': [], 'opp_off_total_ppa':[], 'opp_off_success_rate': [], 
                         'opp_def_total_ppa':[], 'opp_def_success_rate': [], 'opp_def_total_yards': []}
 
-        matchups = matchup_api_instance.get_games(year=year, week=cur_week, division='FBS')
+        matchups = matchup_api_instance.get_games(year=year, season_type=season_type, week=cur_week, division='FBS')
 
         # Make Matchup DF
         for matchup in matchups:
@@ -424,7 +432,7 @@ class ScorePredictorNCAAF:
             match_dict['season'].append(matchup.season)
 
         # Make Ranking DF
-        rankings = rankings_api_instance.get_rankings(year=year, week=cur_week)
+        rankings = rankings_api_instance.get_rankings(year=year, season_type=season_type, week=cur_week)
 
 
         for week in rankings:
@@ -437,7 +445,12 @@ class ScorePredictorNCAAF:
                         rank['season'].append(week.season)
 
         # Advanced Statistics DF
-        advanced_stats = advanced_stats_api_instance.get_advanced_team_season_stats(year=year, start_week = 1, end_week = cur_week)
+        if bPO:
+            advanced_stats = advanced_stats_api_instance.get_advanced_team_season_stats(year=year)
+        elif (bPO is False) & (current_week == 1):
+            advanced_stats = advanced_stats_api_instance.get_advanced_team_season_stats(year=year-1)
+        else:
+            advanced_stats = advanced_stats_api_instance.get_advanced_team_season_stats(year=year, start_week = 1, end_week = cur_week)
 
         for stat in advanced_stats:
             advanced_dict['team'].append(stat.team)
@@ -475,7 +488,12 @@ class ScorePredictorNCAAF:
                 elif stat.defense.line_yards_total is None:
                     opp_advanced_dict['opp_def_total_yards'].append(stat.defense.open_field_yards_total)
         # Statistics DF
-        stats = stats_api_instance.get_team_season_stats(year=year, start_week = 1, end_week = cur_week)
+        if bPO:
+            stats = stats_api_instance.get_team_season_stats(year=year)
+        elif (bPO is False) & (current_week == 1):
+            stats = stats_api_instance.get_team_season_stats(year=year-1)
+        else:
+            stats = stats_api_instance.get_team_season_stats(year=year, start_week = 1, end_week = cur_week)
 
         stats_dict_temp = {'team': []}
         opp_stats_dict_temp = {'opponent': []}
@@ -703,7 +721,10 @@ class ScorePredictorNCAAF:
         predictions_df['away_points'] = np.round(y_pred_away)
 
         # Save DFs to Excel
-        predictions_df.to_excel(os.path.join(out_path,f"Season {season} Week {week} NCAAF Score Predictions.xlsx"))
+        if bPO:
+            predictions_df.to_excel(os.path.join(out_path,f"Playoff Season {year} Week {current_week} NCAAF Score Predictions.xlsx"))
+        else:
+            predictions_df.to_excel(os.path.join(out_path,f"Season {year} Week {cur_week} NCAAF Score Predictions.xlsx"))
 
 ########################################################################################################################################
 ########################################################################################################################################
@@ -711,7 +732,7 @@ class ScorePredictorNCAAF:
 ########################################################################################################################################
 
     ###### Update Model ######
-    def update_model(self, path, year, current_week):
+    def update_model(self, path, year, current_week, bPO):
         # Read Old Dataset
         full_file_path = path
         full_file_name = "Full Dataset.xlsx"
@@ -727,6 +748,9 @@ class ScorePredictorNCAAF:
 
         if season_week in old_full_df['season_week'].values:
             return f"Already input Season {year}, Week {current_week} Data"
+        
+        if bPO:
+            return f"Cannot Update Model with Playoff Data"
 
         old_full_df.drop(columns={'season_week'}, inplace=True)
 

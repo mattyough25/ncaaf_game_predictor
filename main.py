@@ -20,9 +20,10 @@ def make_predictions():
     prediction_path = out_path.get()
     season = int(year.get())
     current_week = int(week.get())
+    playoff = bPO.get()
 
     # Make Predictions
-    predictor.predict_scores(data_path, prediction_path, season, current_week)
+    predictor.predict_scores(data_path, prediction_path, season, current_week, playoff)
     status.delete("1.0", "end")
     status.insert(INSERT, "Predictions Complete")
 
@@ -33,9 +34,10 @@ def update_model():
     data_path = in_path.get()
     season = int(year.get())
     current_week = int(week.get())
+    playoff = bPO.get()
 
     # Update Model with Current Weeks Data
-    predictor_status = predictor.update_model(data_path, season, current_week)
+    predictor_status = predictor.update_model(data_path, season, current_week, playoff)
     status.delete("1.0", "end")
     status.insert(INSERT, predictor_status)
 
@@ -121,5 +123,14 @@ Update_btn.grid(column=1, row=4, rowspan=2)
 status = StringVar()
 status = Text(root, width=30, height = 4)
 status.grid(column = 2, row=4, rowspan=2)
+
+#############################################################################################################
+
+# Playoff Status Indicator
+bPO = IntVar()
+check = Checkbutton(root, text = "Check if Playoff Game", variable = bPO, \
+                 onvalue = 1, offvalue = 0, height=5, \
+                 width = 20)
+check.grid(column = 2, row=1)
 
 root.mainloop()
