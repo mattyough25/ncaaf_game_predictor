@@ -311,7 +311,7 @@ class ScorePredictorNCAAF:
 ########################################################################################################################################
 
     ###### Train Model ######
-    def train_model(self, path):
+    def train_model(self, path, start_year, end_year):
         
         # Read Dataset for Training
         file_path = path
@@ -324,6 +324,7 @@ class ScorePredictorNCAAF:
 
         data_df = pd.read_excel(f"{file_path}/{file_name}", index_col=0)
         data_df = data_df.dropna(axis = 0).reset_index()
+        data_df = data_df[(data_df['season'] >= int(start_year)) & (data_df['season'] <= int(end_year))]
 
         # Define Metrics for Input Variables
         X = data_df[['rank', 'opponent_rank', 'off_success_rate','def_success_rate', 'def_per_game_ppa',
@@ -364,6 +365,9 @@ class ScorePredictorNCAAF:
         # Save Models
         joblib.dump(regr_home, os.path.join(model_path,home_model_file))
         joblib.dump(regr_away, os.path.join(model_path,away_model_file))
+
+        # Return Model Results
+        return str(regr_home.score(X_test, y_test)), str(regr_away.score(X_test, y_test))
 
 ########################################################################################################################################
 ########################################################################################################################################
@@ -733,6 +737,7 @@ class ScorePredictorNCAAF:
 
     ###### Update Model ######
     def update_model(self, path, year, current_week, bPO):
+    
         # Read Old Dataset
         full_file_path = path
         full_file_name = "Full Dataset.xlsx"
@@ -1055,6 +1060,9 @@ class ScorePredictorNCAAF:
         updated_full_df.to_excel(f"{full_file_path}/{full_file_name}")
         updated_norm_df.to_excel(f"{norm_file_path}/{norm_file_name}")
 
+        return "Update Complete"
+    
+        '''
         # Retrain Model on New Data
         # Define Metrics for Input Variables
         X = updated_norm_df[['rank', 'opponent_rank', 'off_success_rate','def_success_rate', 'def_per_game_ppa',
@@ -1097,3 +1105,59 @@ class ScorePredictorNCAAF:
         joblib.dump(regr_away, os.path.join(model_path,away_model_file))
 
         return "Update Complete"
+        '''
+    
+    def retrain_model(self, path, start_year, end_year):
+        # Read Dataset for Training
+        file_path = path
+        file_name = "Model_Training_Dataset.xlsx"
+
+        # Model Output Path and File Names
+        model_path = path
+        home_model_file = "Home_Team_Model.pkl"
+        away_model_file = "Away_Team_Model.pkl"
+
+        data_df = pd.read_excel(f"{file_path}/{file_name}", index_col=0)
+        data_df = data_df.dropna(axis = 0).reset_index()
+        data_df = data_df[(data_df['season'] >= int(start_year)) & (data_df['season'] <= int(end_year))]
+
+        # Define Metrics for Input Variables
+        X = data_df[['rank', 'opponent_rank', 'off_success_rate','def_success_rate', 'def_per_game_ppa',
+                        'off_per_game_ppa', 'passing_yards_per_game', 'rushing_yards_per_game', 'TDs_per_game', 'time_of_possession_per_game',
+                        'off_turnovers_per_game', 'penalty_yards_per_game', 'sacks_per_game', 'def_interceptions_per_game', 'team_code', 'opp_code',
+                            'opp_off_success_rate','opp_def_success_rate', 'opp_def_per_game_ppa','opp_off_per_game_ppa', 'opp_passing_yards_per_game', 
+                            'opp_rushing_yards_per_game', 'opp_TDs_per_game', 'opp_time_of_possession_per_game', 'opp_off_turnovers_per_game', 
+                            'opp_penalty_yards_per_game', 'opp_sacks_per_game', 'opp_def_interceptions_per_game']]
+        X = X.reset_index(drop=True)
+
+        # Split Data for Home and Away Models
+        X_team = X[['rank', 'opponent_rank', 'off_success_rate', 'off_per_game_ppa', 'passing_yards_per_game', 'rushing_yards_per_game', 'TDs_per_game', 
+                    'time_of_possession_per_game', 'off_turnovers_per_game', 'penalty_yards_per_game', 'team_code', 'opp_code',
+                    'opp_def_success_rate', 'opp_def_per_game_ppa', 'opp_time_of_possession_per_game','opp_penalty_yards_per_game', 
+                    'opp_sacks_per_game', 'opp_def_interceptions_per_game']]
+        X_opp = X[['rank', 'opponent_rank', 'def_success_rate', 'def_per_game_ppa','time_of_possession_per_game','penalty_yards_per_game', 'sacks_per_game',
+                    'def_interceptions_per_game', 'team_code', 'opp_code','opp_off_success_rate','opp_off_per_game_ppa', 'opp_passing_yards_per_game', 
+                    'opp_rushing_yards_per_game', 'opp_TDs_per_game', 'opp_time_of_possession_per_game', 'opp_off_turnovers_per_game', 
+                    'opp_penalty_yards_per_game']]
+
+        y_team = data_df['team_points']
+        y_opp = data_df['opponent_points']
+
+        # Home Linear Regression Model
+        ##X_train, X_test, y_train, y_test = train_test_split(X_team, y_team, test_size = 0.20)
+
+        regr_home = LinearRegression()
+        regr_home.fit(X_team, y_team.values.ravel())
+
+        # Away Linear Regression model
+        #X_train, X_test, y_train, y_test = train_test_split(X_opp, y_opp, test_size = 0.20)
+
+        regr_away = LinearRegression()
+        regr_away.fit(X_opp, y_opp.values.ravel())
+
+        # Save Models
+        joblib.dump(regr_home, os.path.join(model_path,home_model_file))
+        joblib.dump(regr_away, os.path.join(model_path,away_model_file))
+
+        # Return Model Results
+        return str(round(regr_home.score(X_team, y_team),2)), str(round(regr_away.score(X_opp, y_opp),2))
